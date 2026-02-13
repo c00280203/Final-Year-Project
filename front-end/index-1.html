@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style-1.css">
+    <link rel="icon" href="../img/logo-rm-bg.png" type="image/x-icon">
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    >
+    <title>Intelligent road inspection platform</title>
+</head>
+<body>
+    <div id="cameraModal" class="camera-modal">
+        <div class="camera-modal-content">
+            <div class="camera-modal-header">
+                <h3>Take Photo</h3>
+                <button id="closeCamera" class="close-btn">×</button>
+            </div>
+            <video id="cameraPreview" class="camera-preview" autoplay playsinline></video>
+            <div class="camera-controls">
+                <button id="captureBtn" class="btn btn-capture">Capture Photo</button>
+                <button id="switchCamera" class="btn btn-switch">Switch Camera</button>
+            </div>
+            <canvas id="photoCanvas" class="photo-canvas"></canvas>
+        </div>
+    </div>
+    <div class="container">
+        <h1>Intelligent road inspection platform</h1>
+        <h2>Basic</h2>
+        <div class="row">
+            <div class="service">
+                <i class="fas fa-eye"></i>
+                <h3>Monitoring</h3>
+                <p>Transmit drone aerial images and automatically mark potential hazards</p>
+            </div>
+            <div class="service">
+                <i class="fas fa-map-marked-alt"></i>
+                <h3>Map Overview</h3>
+                <p>Two-dimensional map display, supporting query of problem location</p>
+            </div>
+            <div class="service">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Early Warning</h3>
+                <p>Multi-level warning (red/yellow/blue) classification display and push notification</p>
+            </div>
+            <div class="service" onclick="window.location.href='index-2.html';">
+                <i class="fas fa-file-upload"></i>
+                <h3>Upload</h3>
+                <p>Upload images from local storage</p>
+            </div>
+            <script src="main.js"></script>
+            <div class="service" id="camera-div">
+                <i class="fas fa-camera"></i>
+                <h3>Take photos</h3>
+                <p>Manually capture and automatically associate GPS coordinates with hidden danger types</p>
+            </div>
+            <div class="service">
+                <i class="fas fa-gear"></i>
+                <h3>System Settings</h3>
+                <p>User password modification, etc.</p>
+            </div>
+            <div class="service" onclick="window.location.href='login.html';">
+                <i class="fas fa-sign-out-alt"></i>
+                <h3>Exit</h3>
+                <p>Return to login page</p>
+            </div>
+        </div>
+        <h2>Professional</h2>
+        <div class="row">
+            <div class="service">
+                <i class="fas fa-mountain"></i>
+                <h3>Crack</h3>
+                <p>AI identifies Crack</p>
+            </div>
+            <div class="service">
+                <i class="fas fa-circle-notch"></i>
+                <h3>Potholes</h3>
+                <p>AI identifies Potholes</p>
+            </div>
+        </div>
+    </div>
+    <div id="result-img-container">
+        <img id="result-img" src=""/>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>

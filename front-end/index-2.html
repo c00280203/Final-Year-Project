@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IntelliRoad Detect</title>
+    <style>
+        /* 样式保持不变，完全沿用之前的 index-2.html 样式 */
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #f0f2f5;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            width: 1200px;
+            max-width: 95vw;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+            padding: 24px;
+        }
+        .title {
+            font-size: 24px;
+            font-weight: 500;
+            color: #1e293b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .toolbar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            background: #f8fafc;
+            padding: 12px 20px;
+            border-radius: 60px;
+            border: 1px solid #e2e8f0;
+        }
+        .btn {
+            border: none;
+            background: transparent;
+            padding: 8px 24px;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #334155;
+            border: 1px solid transparent;
+        }
+        .btn i {
+            margin-right: 6px;
+        }
+        .btn.upload {
+            background: #e2e8f0;
+            color: #0000bf;
+        }
+        .btn.upload:hover {
+            color: #f8fafc;
+            background: #0000bf;
+        }
+        .btn.location {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+        .btn.location:enabled {
+            background: #f8fafc;
+            color: #16a34a;
+        }
+        .btn.location:enabled:hover {
+            background: #16a34a;
+            color: #f8fafc;
+        }
+        .btn.location:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn.back {  /* 修改：将 Exit 改为 Back 样式 */
+            color: #1e293b;
+            background: #e2e8f0;
+        }
+        .btn.back:hover {
+            background: #1e293b;
+            color: #e2e8f0;
+        }
+        .image-row {
+            display: flex;
+            gap: 24px;
+            margin-top: 16px;
+        }
+        .image-card {
+            flex: 1;
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 20px 16px 16px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+        .image-card h3 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            font-weight: 500;
+            color: #0f172a;
+            text-align: center;
+        }
+        .img-container {
+            width: 100%;
+            height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+        }
+        .img-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .placeholder {
+            color: #94a3b8;
+            font-size: 16px;
+            text-align: center;
+        }
+        .status {
+            margin-top: 20px;
+            color: #475569;
+            font-size: 14px;
+            text-align: center;
+            border-top: 1px dashed #cbd5e1;
+            padding-top: 12px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- EXIF 读取库 exifr -->
+    <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="title">IntelliRoad Detect</div>
+
+    <!-- 按钮栏：Upload, Go to location, Back（原 Exit 改为 Back） -->
+    <div class="toolbar">
+        <button class="btn upload" id="uploadBtn"><i class="fas fa-upload"></i> Upload image</button>
+        <button class="btn location" id="locationBtn" disabled><i class="fas fa-map-marker-alt"></i> Go to location</button>
+        <button class="btn back" id="backBtn"><i class="fas fa-arrow-left"></i> Back</button>  <!-- 返回按钮 -->
+    </div>
+
+    <div class="image-row">
+        <div class="image-card">
+            <h3>Please select image to detect</h3>
+            <div class="img-container" id="originalContainer">
+                <img id="originalImg" src="" alt="" style="display: none;">
+                <span class="placeholder" id="originalPlaceholder">Please upload image</span>
+            </div>
+        </div>
+        <div class="image-card">
+            <h3>Results</h3>
+            <div class="img-container" id="resultContainer">
+                <img id="resultImg" src="" alt="" style="display: none;">   <!-- 保持 id="resultImg" 不变，但后端会填充它 -->
+                <span class="placeholder" id="resultPlaceholder">Results here</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="status" id="statusMsg">Ready...</div>
+</div>
+
+<script>
+    // 获取 DOM 元素
+    const uploadBtn = document.getElementById('uploadBtn');
+    const locationBtn = document.getElementById('locationBtn');
+    const backBtn = document.getElementById('backBtn');      // 返回按钮
+    const originalImg = document.getElementById('originalImg');
+    const resultImg = document.getElementById('resultImg');
+    const originalPlaceholder = document.getElementById('originalPlaceholder');
+    const resultPlaceholder = document.getElementById('resultPlaceholder');
+    const statusMsg = document.getElementById('statusMsg');
+
+    let currentLat = null;
+    let currentLon = null;
+
+    // 上传按钮：触发文件选择
+    uploadBtn.addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            processImage(file);
+        };
+        input.click();
+    });
+
+    // 前往地点按钮
+    locationBtn.addEventListener('click', () => {
+        if (currentLat !== null && currentLon !== null) {
+            const url = `https://www.google.com/maps?q=${currentLat},${currentLon}`;
+            window.open(url, '_blank');
+        }
+    });
+
+    // 返回按钮：回到 index-1.html（主菜单）
+    backBtn.addEventListener('click', () => {
+        window.location.href = 'index-1.html';
+    });
+
+    // 核心处理函数：读取图片、提取GPS、上传检测、显示结果
+    async function processImage(file) {
+        // 显示原图
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            originalImg.src = dataUrl;
+            originalImg.style.display = 'block';
+            originalPlaceholder.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+
+        // 提取 GPS
+        try {
+            const gps = await exifr.gps(file);
+            if (gps && gps.latitude && gps.longitude) {
+                currentLat = gps.latitude;
+                currentLon = gps.longitude;
+                locationBtn.disabled = false;
+                statusMsg.innerText = `✅ GPS: ${currentLat.toFixed(6)}, ${currentLon.toFixed(6)}`;
+            } else {
+                currentLat = currentLon = null;
+                locationBtn.disabled = true;
+                statusMsg.innerText = 'ℹ️ No GPS information';
+            }
+        } catch (err) {
+            console.warn('Cannot get GPS', err);
+            currentLat = currentLon = null;
+            locationBtn.disabled = true;
+            statusMsg.innerText = '⚠️ Cannot get GPS';
+        }
+
+        // 调用后端检测 API
+        try {
+            statusMsg.innerText = '⏳ Checking...';
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('http://localhost:5001/detect', {
+                method: 'POST',
+                body: formData,
+                mode: 'cors',
+                credentials: 'omit'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed detect');
+            }
+
+            const blob = await response.blob();
+            const imageUrl = URL.createObjectURL(blob);
+
+            // 显示结果图
+            resultImg.src = imageUrl;
+            resultImg.style.display = 'block';
+            resultPlaceholder.style.display = 'none';
+
+            statusMsg.innerText = '✅ Finish detection！';
+        } catch (err) {
+            console.error('Error:', err);
+            statusMsg.innerText = `❌ Failed detect: ${err.message}`;
+            alert('Failed，please confirm server (http://localhost:5001) is working...');
+        }
+    }
+</script>
+</body>
+</html>
