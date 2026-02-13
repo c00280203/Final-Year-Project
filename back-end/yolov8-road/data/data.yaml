@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 2
+names: ['Cracks', 'pothole']
+
+roboflow:
+  workspace: road-defect-detection
+  project: road_defect_detection_uni
+  version: 14
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/road-defect-detection/road_defect_detection_uni/dataset/14
