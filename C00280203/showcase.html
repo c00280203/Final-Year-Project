@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road Inspection · YOLOv8 · Zihan Wang</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f3fa;
+            color: #14141f;
+            line-height: 1.5;
+            transition: background 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* 极简网格纹理 + 光晕 — 高级背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(0, 0, 191, 0.04) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(100, 120, 255, 0.03) 0%, transparent 45%),
+                repeating-linear-gradient(45deg, rgba(0,0,0,0.01) 0px, rgba(0,0,0,0.01) 1px, transparent 1px, transparent 12px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body.dark {
+            background: #0a0a14;
+            color: #e6e8f0;
+        }
+
+        body.dark::before {
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(107, 124, 255, 0.12) 0%, transparent 45%),
+                radial-gradient(circle at 80% 70%, rgba(80, 100, 240, 0.08) 0%, transparent 50%),
+                repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 12px);
+        }
+
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 2.5rem 2rem;
+            position: relative;
+            z-index: 3;
+        }
+
+        /* 顶栏 */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            background: linear-gradient(145deg, #0f0f2a 0%, #1a1a4e 70%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 10px rgba(0, 0, 191, 0.08);
+        }
+
+        body.dark h1 {
+            background: linear-gradient(145deg, #ffffff 0%, #c4cdff 80%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            text-shadow: 0 2px 15px rgba(79, 94, 240, 0.2);
+        }
+
+        .highlight {
+            color: #0000bf;
+            background: none;
+            -webkit-background-clip: unset;
+            background-clip: unset;
+            color: #0000bf;
+            font-weight: 750;
+        }
+
+        body.dark .highlight {
+            color: #8b9aff;
+        }
+
+        /* 高级切换器 — 磨砂玻璃滑动胶囊 */
+        .theme-toggle {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 60px;
+            padding: 0.3rem;
+            display: flex;
+            gap: 6px;
+            box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.12), inset 0 0 0 1px rgba(255,255,255,0.6);
+        }
+
+        body.dark .theme-toggle {
+            background: rgba(20, 20, 40, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-color: rgba(80, 80, 140, 0.5);
+            box-shadow: 0 12px 28px -10px #00000080, inset 0 0 0 1px rgba(100,100,180,0.2);
+        }
+
+        .theme-btn {
+            border: none;
+            background: transparent;
+            padding: 0.65rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 550;
+            font-size: 0.95rem;
+            cursor: pointer;
+            color: #20203e;
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1);
+            letter-spacing: -0.01em;
+            border: 1px solid transparent;
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        body.dark .theme-btn {
+            color: #d0d6ff;
+        }
+
+        .theme-btn i {
+            font-size: 1rem;
+        }
+
+        .theme-btn.active {
+            background: #0000bf;
+            color: white;
+            box-shadow: 0 8px 18px -6px #0000bf66, inset 0 1px 2px rgba(255,255,255,0.3);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        body.dark .theme-btn.active {
+            background: #4f5ef0;
+            box-shadow: 0 8px 20px -6px #2f3bb0cc, inset 0 1px 2px #bcc3ff55;
+        }
+
+        /* 简介卡片 — 玻璃态 + 微光边框 */
+        .intro-card {
+            background: rgba(255, 255, 255, 0.55);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 2.5rem;
+            padding: 2.2rem 2.5rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 25px 45px -16px rgba(0, 0, 30, 0.12), inset 0 0 0 1px rgba(255,255,255,0.7);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            transition: transform 0.25s ease, box-shadow 0.4s;
+        }
+
+        body.dark .intro-card {
+            background: rgba(18, 18, 36, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 25px 45px -14px #000000b0, inset 0 0 0 1px rgba(100,100,200,0.15);
+            border-color: rgba(60, 60, 110, 0.3);
+        }
+
+        .intro-card:hover {
+            box-shadow: 0 32px 55px -18px rgba(0, 0, 191, 0.15), inset 0 0 0 1px #ffffffaa;
+        }
+
+        body.dark .intro-card:hover {
+            box-shadow: 0 32px 55px -16px #000000, inset 0 0 0 1px #6f82e0aa;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 3rem;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+
+        .stat-num {
+            font-size: 2.7rem;
+            font-weight: 750;
+            background: linear-gradient(145deg, #0000bf, #3548e0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        body.dark .stat-num {
+            background: linear-gradient(145deg, #b1beff, #d6deff);
+            -webkit-background-clip: text;
+            background-clip: text;
+        }
+
+        /* 功能网格 — 更高级的悬浮卡片 */
+        .grid-2col {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.6rem;
+            margin: 2.8rem 0;
+        }
+
+        @media (max-width: 640px) {
+            .grid-2col { grid-template-columns: 1fr; }
+        }
+
+        .func-item {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 1.4rem 1.8rem;
+            border-radius: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 1.3rem;
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            box-shadow: 0 12px 20px -12px rgba(0,0,0,0.05), inset 0 0 0 1px rgba(255,255,255,0.4);
+        }
+
+        body.dark .func-item {
+            background: rgba(22, 22, 45, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-color: rgba(70, 70, 130, 0.4);
+            box-shadow: 0 12px 22px -10px #00000080, inset 0 0 0 1px rgba(120,120,200,0.1);
+        }
+
+        .func-item:hover {
+            transform: translateY(-5px) scale(1.01);
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 24px 40px -16px rgba(0, 0, 80, 0.18), inset 0 0 0 1px #c8d2ff;
+            border-color: #cfd9ff;
+        }
+
+        body.dark .func-item:hover {
+            background: rgba(35, 35, 65, 0.7);
+            box-shadow: 0 24px 40px -14px #000000, inset 0 0 0 1px #7b8cf0;
+            border-color: #7b8cf0;
+        }
+
+        .func-icon {
+            width: 3.2rem;
+            height: 3.2rem;
+            background: linear-gradient(145deg, #eef2ff, #dfe5ff);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0000bf;
+            font-size: 1.5rem;
+            box-shadow: inset 0 1.5px 4px #ffffff, 0 8px 14px -8px #0000bf33;
+            transition: 0.2s;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        body.dark .func-icon {
+            background: linear-gradient(145deg, #2e2e60, #232350);
+            color: #a7baff;
+            box-shadow: inset 0 1px 3px #5a5a9e, 0 8px 14px -6px #0a0a20;
+            border-color: #404a80;
+        }
+
+        .func-text h4 {
+            font-weight: 650;
+            margin-bottom: 6px;
+            font-size: 1.2rem;
+            letter-spacing: -0.015em;
+        }
+
+        .func-text p {
+            font-size: 0.9rem;
+            color: #3e4459;
+            font-weight: 480;
+        }
+
+        body.dark .func-text p { color: #bcc4e3; }
+
+        /* 媒体区域 */
+        .media-section {
+            margin: 3.5rem 0 2.5rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 2rem;
+        }
+
+        .section-header i {
+            color: #0000bf;
+            font-size: 2rem;
+            background: rgba(255,255,255,0.4);
+            padding: 0.6rem;
+            border-radius: 20px;
+            backdrop-filter: blur(8px);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6);
+        }
+
+        body.dark .section-header i {
+            color: #97a5ff;
+            background: rgba(25,25,55,0.5);
+            box-shadow: inset 0 0 0 1px #4a5090;
+        }
+
+        .section-header h2 {
+            font-weight: 680;
+            letter-spacing: -0.02em;
+            font-size: 1.9rem;
+        }
+
+        /* 图片网格 — 精致的玻璃卡片 */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.8rem;
+        }
+
+        @media (max-width: 700px) {
+            .image-grid { grid-template-columns: 1fr; }
+        }
+
+        .media-card {
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 2rem;
+            padding: 1rem 1rem 1.4rem;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 20px 35px -16px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(255,255,255,0.5);
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1);
+        }
+
+        body.dark .media-card {
+            background: rgba(18, 18, 38, 0.55);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-color: rgba(70, 70, 130, 0.35);
+            box-shadow: 0 20px 35px -14px #000000cc, inset 0 0 0 1px rgba(100,100,200,0.1);
+        }
+
+        .media-card:hover {
+            transform: translateY(-6px) scale(1.01);
+            background: rgba(255, 255, 255, 0.65);
+            box-shadow: 0 30px 45px -18px #0000bf33, inset 0 0 0 1px #b7c2ff;
+            border-color: #b7c2ff;
+        }
+
+        body.dark .media-card:hover {
+            background: rgba(30, 30, 60, 0.7);
+            box-shadow: 0 30px 45px -16px #000000, inset 0 0 0 1px #7b8cf0;
+            border-color: #7b8cf0;
+        }
+
+        .img-placeholder {
+            background: transparent;
+            border-radius: 1.4rem;
+            aspect-ratio: 16/10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.9rem;
+            overflow: hidden;
+            box-shadow: 0 12px 22px -12px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        body.dark .img-placeholder {
+            box-shadow: 0 12px 22px -10px #000000;
+            border-color: #3a4080;
+        }
+
+        .img-placeholder img {
+            width: 100%;
+            border-radius: 1.4rem;
+            aspect-ratio: 16/10;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s;
+        }
+
+        .media-card p {
+            font-weight: 550;
+            font-size: 0.98rem;
+            margin-left: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 视频区域 — 玻璃卡片 */
+        .video-block {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 2.5rem;
+            padding: 2rem;
+            margin-top: 2.5rem;
+            border: 1px solid rgba(255,255,255,0.7);
+            box-shadow: 0 25px 40px -18px rgba(0,0,0,0.1), inset 0 0 0 1px rgba(255,255,255,0.6);
+        }
+
+        body.dark .video-block {
+            background: rgba(15, 15, 32, 0.6);
+            backdrop-filter: blur(20px);
+            border-color: rgba(60, 60, 120, 0.4);
+            box-shadow: 0 25px 40px -16px #000000e0, inset 0 0 0 1px #5058a0;
+        }
+
+        .video-block video {
+            width: 100%;
+            border-radius: 1.6rem;
+            display: block;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            box-shadow: 0 16px 30px -14px #00000055;
+            border: 1px solid rgba(255,255,255,0.3);
+            transition: box-shadow 0.3s;
+        }
+
+        body.dark .video-block video {
+            box-shadow: 0 18px 32px -12px #000000;
+            border-color: #3f4680;
+        }
+
+        /* 技术标签 — 玻璃药丸 */
+        .tech-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 1.8rem 0 0.5rem;
+        }
+
+        .pill {
+            background: rgba(238, 242, 255, 0.55);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            padding: 0.5rem 1.4rem;
+            border-radius: 60px;
+            font-size: 0.9rem;
+            font-weight: 540;
+            color: #12122e;
+            border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: 0 6px 12px -8px rgba(0,0,0,0.05), inset 0 0 0 1px #ffffffaa;
+            transition: 0.2s;
+        }
+
+        body.dark .pill {
+            background: rgba(30, 30, 60, 0.55);
+            backdrop-filter: blur(6px);
+            color: #e2e7ff;
+            border-color: #5b64a8;
+            box-shadow: inset 0 0 0 1px #6b75c0;
+        }
+
+        .pill:hover {
+            background: #eef3ff;
+            border-color: #a3afff;
+            transform: translateY(-1px);
+        }
+
+        body.dark .pill:hover {
+            background: #3a3f78;
+            border-color: #8c9aff;
+        }
+
+        .footer-note {
+            margin-top: 4rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #4f5b75;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            padding-top: 2.2rem;
+            backdrop-filter: blur(8px);
+            font-weight: 450;
+            letter-spacing: 0.2px;
+        }
+
+        body.dark .footer-note {
+            color: #b1bbdf;
+            border-color: rgba(255,255,255,0.08);
+        }
+
+        button { font-family: inherit; }
+
+        /* 微调文字 */
+        .intro-card p {
+            font-weight: 460;
+            color: #1f2233;
+        }
+        body.dark .intro-card p { color: #d2d9f5; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="top-bar">
+        <h1><span class="highlight">IntelliRoad</span> Detect · YOLOv8</h1>
+        <div class="theme-toggle" id="themeToggle">
+            <button class="theme-btn active" data-theme="light"><i class="far fa-sun"></i> Light</button>
+            <button class="theme-btn" data-theme="dark"><i class="far fa-moon"></i> Dark</button>
+        </div>
+    </div>
+
+    <div class="intro-card">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <div style="font-weight: 680; font-size: 1.4rem; margin-bottom: 0.5rem; letter-spacing: -0.02em;">Zihan Wang · C00280203</div>
+                <div style="color: #3a4258; font-weight: 480;">Supervisor: Jamal Tauseef · SETU · April 2026</div>
+                <p style="margin-top: 1.2rem; max-width: 620px; font-size: 1.02rem;">Automated crack & pothole detection with GPS mapping, manual annotation, and secure multi‑user isolation.</p>
+            </div>
+            <div class="stats-row">
+                <div class="stat-item"><span class="stat-num">87.3%</span> <span>mAP@0.5</span></div>
+                <div class="stat-item"><span class="stat-num">8</span> <span>modules</span></div>
+                <div class="stat-item"><span class="stat-num">Flask</span> <span>+ YOLOv8</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-2col">
+        <div class="func-item"><div class="func-icon"><i class="fas fa-eye"></i></div><div class="func-text"><h4>General detection</h4><p>YOLOv8n, class filter, GPS link</p></div></div>
+        <div class="func-item"><div class="func-icon"><i class="fas fa-map-marked-alt"></i></div><div class="func-text"><h4>Map overview</h4><p>Leaflet, markers, Google Maps nav</p></div></div>
+        <div class="func-item"><div class="func-icon"><i class="fas fa-pen"></i></div><div class="func-text"><h4>Manual marking</h4><p>Canvas rectangles, save per image</p></div></div>
+        <div class="func-item"><div class="func-icon"><i class="fas fa-cloud-upload-alt"></i></div><div class="func-text"><h4>Upload & detect</h4><p>Crack/pothole inference, auto‑save</p></div></div>
+        <div class="func-item"><div class="func-icon"><i class="fas fa-camera"></i></div><div class="func-text"><h4>Camera capture</h4><p>Mobile/laptop, EXIF GPS</p></div></div>
+        <div class="func-item"><div class="func-icon"><i class="fas fa-clock"></i></div><div class="func-text"><h4>History & filter</h4><p>Separate crack/pothole, delete, edit</p></div></div>
+        <div class="func-item"><div class="func-icon"><i class="fas fa-gear"></i></div><div class="func-text"><h4>Settings</h4><p>Dark/light mode, change password</p></div></div>
+        <div class="func-item"><div class="func-icon"><i class="fas fa-lock"></i></div><div class="func-text"><h4>Auth & security</h4><p>CSRF, brute‑force, user isolation</p></div></div>
+    </div>
+
+    <div class="media-section">
+        <div class="section-header">
+            <i class="fas fa-image"></i>
+            <h2>Interface preview</h2>
+            <span style="margin-left: auto; font-size: 0.8rem; backdrop-filter: blur(8px);">📸 Screenshots</span>
+        </div>
+        <div class="image-grid">
+            <div class="media-card">
+                <div class="img-placeholder"><img src="img/01.png" alt="Login / Register"></div>
+                <p>🔐 Authentication</p>
+            </div>
+            <div class="media-card">
+                <div class="img-placeholder"><img src="img/02.png" alt="Dashboard"></div>
+                <p>🏠 home page</p>
+            </div>
+            <div class="media-card">
+                <div class="img-placeholder"><img src="img/03.png" alt="Detection result"></div>
+                <p>⬆️ bounding boxes</p>
+            </div>
+            <div class="media-card">
+                <div class="img-placeholder"><img src="img/04.png" alt="Map overview"></div>
+                <p>📍 Map overview</p>
+            </div>
+            <div class="media-card">
+                <div class="img-placeholder"><img src="img/05.png" alt="Manual marking"></div>
+                <p>✏️ canvas rectangles</p>
+            </div>
+            <div class="media-card">
+                <div class="img-placeholder"><img src="img/06.png" alt="History modal"></div>
+                <p>📋 crack/pothole list</p>
+            </div>
+        </div>
+
+        <div class="video-block">
+            <div style="display: flex; gap: 14px; margin-bottom: 1.5rem; align-items: center;">
+                <i class="fas fa-video" style="color:#0000bf; font-size: 1.8rem; background: rgba(255,255,255,0.4); padding: 0.5rem; border-radius: 20px; backdrop-filter: blur(4px);"></i>
+                <h3 style="font-weight: 680; letter-spacing: -0.015em;">Demo walkthrough</h3>
+            </div>
+            <!-- 响应式 iframe 容器，保持 16:9 比例 -->
+            <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 1.6rem;">
+                <iframe src="https://setuo365-my.sharepoint.com/personal/c00280203_setu_ie/_layouts/15/embed.aspx?UniqueId=9d2060f2-9ff9-4a2d-8c03-b579b545cf73&embed=%7B%22ust%22%3Atrue%2C%22hv%22%3A%22CopyEmbedCode%22%7D&referrer=StreamWebApp&referrerScenario=EmbedDialog.Create"
+                        width="640" height="360" frameborder="0" scrolling="no" allowfullscreen
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 1.6rem; border: 1px solid rgba(255,255,255,0.3);">
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 2.8rem; justify-content: space-between; margin-top: 1.5rem;">
+        <div>
+            <div style="font-weight: 680; margin-bottom: 1rem; font-size: 1.1rem;"><i class="fas fa-code" style="margin-right: 10px;"></i>Tech stack</div>
+            <div class="tech-pills">
+                <span class="pill">Flask</span><span class="pill">YOLOv8</span><span class="pill">Leaflet</span>
+                <span class="pill">EXIFR</span><span class="pill">JSON store</span><span class="pill">OAuth demo</span>
+            </div>
+        </div>
+        <div>
+            <div style="font-weight: 680; margin-bottom: 1rem; font-size: 1.1rem;"><i class="fas fa-shield" style="margin-right: 10px;"></i>Security</div>
+            <div class="tech-pills">
+                <span class="pill">CSRF token</span><span class="pill">Brute‑force lock</span><span class="pill">File validation</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-note">
+        Intelligent Road Inspection Platform · Design & Implementation · YOLOv8 crack/pothole detection<br>
+        BSc (Hons) Software Development · South East Technological University
+    </div>
+</div>
+
+<script>
+    (function() {
+        const body = document.body;
+        const lightBtn = document.querySelector('[data-theme="light"]');
+        const darkBtn = document.querySelector('[data-theme="dark"]');
+
+        function setTheme(theme) {
+            if (theme === 'dark') {
+                body.classList.add('dark');
+                lightBtn.classList.remove('active');
+                darkBtn.classList.add('active');
+                localStorage.setItem('roadTheme', 'dark');
+            } else {
+                body.classList.remove('dark');
+                darkBtn.classList.remove('active');
+                lightBtn.classList.add('active');
+                localStorage.setItem('roadTheme', 'light');
+            }
+        }
+
+        const saved = localStorage.getItem('roadTheme');
+        if (saved === 'dark') {
+            setTheme('dark');
+        } else {
+            setTheme('light');
+        }
+
+        lightBtn.addEventListener('click', () => setTheme('light'));
+        darkBtn.addEventListener('click', () => setTheme('dark'));
+    })();
+</script>
+<!-- 保留原有替换指引 -->
+<!--
+    ===== 如何替换图片和视频 =====
+    1. 将您的截图放入 img/ 文件夹，命名为 01.png, 02.png ... (或自行修改 src)
+    2. 视频替换：更新 <source src="img/Video.MOV"> 即可
+    3. 所有内容与功能未变，仅视觉升级
+-->
+</body>
+</html>
